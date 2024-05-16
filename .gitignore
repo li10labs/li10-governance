@@ -1,0 +1,17 @@
+.tfcache
+.env
+.venv
+.python-version
+.venv/**
+infra/cloudcustodian/tmp/**
+out/
+.DS_STORE
+.tox/
+.idea/
+.vscode/
+!.vscode/*.sample
+.pytest_cache/
+pip-wheel-metadata/
+pyvenv.cfg
+junit
+/.vs

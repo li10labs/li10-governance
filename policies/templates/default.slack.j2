@@ -1,0 +1,109 @@
+{%- macro getTag(resource, tagKey) -%}
+	{%- if resource.get('Tags') -%}
+		{%- for t in resource.get('Tags') -%}
+			{%-  if t.get('Key') == tagKey -%}
+				{{ t.get('Value') }}
+			{%- endif -%}
+		{%- endfor -%}
+	{%- endif -%}
+{%- endmacro -%}
+
+{% set ids = [] %}
+{% set _ = ids.append(resources[0].InstanceId) %}
+{% if event %}
+   {% set _ = ids.append(event.detail.requestParameters.bucketName) %}
+   {% set _ = ids.append(event.detail.responseElements.dBInstanceArn) %}
+   {% set _ = ids.append(event.detail.responseElements.snapshotId) %}
+   {% set _ = ids.append(event.detail.requestParameters.functionName) %}
+   {% set _ = ids.append(event.detail.responseElements.volumeId) %}
+{% endif %}
+
+{% set sagemaker_ids = [] %}
+{% if event %}
+   {% set _ = sagemaker_ids.append(event.detail.responseElements.modelArn) %}
+   {% set _ = sagemaker_ids.append(event.detail.responseElements.endpointConfigArn) %}
+   {% set _ = sagemaker_ids.append(event.detail.responseElements.endpointArn) %}
+   {% set _ = sagemaker_ids.append(event.detail.responseElements.transformJobArn) %}
+   {% set _ = sagemaker_ids.append(event.detail.responseElements.trainingJobArn) %}
+   {% set _ = sagemaker_ids.append(event.detail.responseElements.notebookInstanceArn) %}
+{% endif %}
+
+{%- set nameTag = getTag(resources[0],"Name") -%}
+
+{
+   "attachments":[
+      {
+         "fallback":"{{ policy['resource'] }} - {{ action.violation_desc }}",
+         "color":"{{ action.level }}",
+         "fields":[
+            {
+               "title":"Finding",
+               "value":"{{ action.violation_desc }}",
+               "short": false
+            }
+            ,{
+               "title":"Account",
+               "value":"{{ account }} {{ account_id }}",
+               "short": true
+            }
+            ,{
+               "title":"Region",
+               "value":"{{ region }}",
+               "short": true
+            }
+            ,{
+               "title":"Action Taken",
+               "value":"{{ action.action_desc }}"
+            }
+            {% if policy['resource'] == "acm-certificate" %}
+            ,{
+               "title":"Domain",
+               "value":"```{{ resources[0].DomainName }}```",
+            }
+            {% endif %}
+            {%- if nameTag -%}
+            ,{
+               "title":"Name Tag",
+               "value":"{{ nameTag }}",
+               "short": true
+            }
+            {%- endif -%}
+            ,{
+               "title":"Identifier",
+               {% if policy['resource'] == "app-elb-target-group" and event.detail.eventName == "CreateTargetGroup" %}
+                  "value":"```{{ event.detail.responseElements.targetGroups[0].targetGroupArn }}```",
+
+               {% elif policy['resource'] == "app-elb" and event.detail.eventName == "CreateLoadBalancer" %}
+                  "value":"```{{ event.detail.responseElements.loadBalancers[0].loadBalancerArn }}```",
+
+               {% elif policy['resource'] == "elastic-ip" %}
+                  "value":"```{{ resources | selectattr('PublicIp') | map(attribute='PublicIp') | list }}```",
+
+               {% elif policy['resource'] == "s3" %}
+                  "value":"```{{ resources[0].Name }}```",
+
+               {% elif policy['resource'] == "acm-certificate" %}
+                  "value":"```{{ resources[0].CertificateArn }}```",
+
+               {% elif policy['resource'].startswith("sagemaker") %}
+                  "value":"```{{ sagemaker_ids | join('') }}```",
+
+               {% elif policy['resource'] == "dynamodb-table" %}
+                  "value":"```{{event.detail.responseElements.tableDescription.tableArn}}```",
+
+               {% elif policy['resource'] == "security-group" and event.detail.eventName == "CreateSecurityGroup" %}
+                  "value":"```groupName: {{event.detail.requestParameters.groupName}} groupId: {{event.detail.responseElements.groupid}} ```",
+
+               {% elif policy['resource'] == "security-group" and event.detail.eventName == "AuthorizeSecurityGroupIngress" %}
+                  "value":"```groupId: {{event.detail.requestParameters.groupId}}\nRemoved: {{event.detail.requestParameters.ipPermissions}}```",
+
+               {% else %}
+                  "value":"```{{ ids | join('') }}```",
+               {% endif %}
+            }
+         ]
+      }
+   ],
+   "channel":"{{ recipient }}",
+   "username":"{{ action.violation_desc }}"
+}

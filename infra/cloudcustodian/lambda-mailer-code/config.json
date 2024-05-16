@@ -1,0 +1,17 @@
+{
+    "queue_url": "will be automatically set by the mailer at runtime using the Lambda environment variable",
+    "from_address": "will be automatically set by the mailer at runtime using the Lambda environment variable",
+    "role": "will be automatically set by the mailer at runtime using the Lambda environment variable",
+    "contact_tags": [
+        "OwnerContact",
+        "OwnerEmail",
+        "SNSTopicARN"
+    ],
+    "slack_token": "will be overwriten by the mailer at runtime with value read from secrets manager",
+    "templates_folders": [
+        "c7n_mailer/msg-templates/"
+    ],
+    "mongodb_uri": "will be overwriten by the mailer at runtime with value read from secrets manager",
+    "mongodb_database": "CloudCustodian",
+    "mongodb_collection": "Events"
+}

@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "!infra/cloudcustodian/docker/**"
+      - infra/cloudcustodian/**
+      - .github/workflows/infra.yml
+      - policies/**
+  pull_request:
+    branches: [ "main" ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    # The type of runner that the job will run on
+    runs-on: [ self-hosted, ubuntu ]
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+        env:
+          PIP_ROOT_USER_ACTION: ignore
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-skip-session-tagging: true
+          role-to-assume: <<CI_ROLE_HERE>>
+          aws-region: us-east-1
+
+      - name: Install Python dependencies and CDK
+        run: |
+          python -m pip install --upgrade pip
+          npm install -g aws-cdk
+
+      - name: Deploy to AWS
+        run: |
+          cd infra/cloudcustodian
+
+          echo "sha: ${{ github.sha }}"
+          echo "url: ${{ github.server_url }}//${{ github.repository }}"
+
+          python -m pip install -r requirements.txt
+          python transform.py > lambda-code/config.json
+          pip install c7n==0.9.35 -t ./tmp/lambda-code/ --no-deps --no-compile
+          cp -r ./tmp/lambda-code/c7n ./lambda-code/c7n/
+
+          pip install -r ./lambda-mailer-code/requirements-mailer.txt -t ./lambda-mailer-code/  --no-deps --no-compile
+          mv ./lambda-mailer-code/main-modified.py ./lambda-mailer-code/main.py
+          mv ./lambda-mailer-code/handle-modified.py ./lambda-mailer-code/c7n_mailer/handle.py
+          mv ./lambda-mailer-code/slack_delivery-modified.py ./lambda-mailer-code/c7n_mailer/slack_delivery.py
+          mv ./lambda-mailer-code/sqs_queue_processor-modified.py ./lambda-mailer-code/c7n_mailer/sqs_queue_processor.py
+          mv ./lambda-mailer-code/target-modified.py ./lambda-mailer-code/c7n_mailer/target.py
+          mv ./lambda-mailer-code/email_delivery-modified.py ./lambda-mailer-code/c7n_mailer/email_delivery.py
+          mv ../../policies/templates/*.j2 ./lambda-mailer-code/c7n_mailer/msg-templates/
+
+          export SHA="${{ github.sha }}"
+          export GIT="${{ github.server_url }}/${{ github.repository }}"
+          export JOB="${{ github.run_id }}"
+          export TEAM="IE"
+
+          cdk deploy --require-approval=never --all

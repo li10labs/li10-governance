@@ -1,0 +1,28 @@
+vars:
+  run_mode: &run_mode
+    type: pull
+  notify: &notify
+    type: notify
+    slack_template: default.slack
+    to:
+        - "{NOTIFY_EMAIL}"
+        - "{NOTIFY_SLACK}"
+    subject: "RDS - Deprecated Engine found = [custodian {{ account }} - {{ region }}]"
+    transport:
+      type: sqs
+      queue: "{INSTANT_SQS_QUEUE}"
+  filters: &filters
+    - type: engine
+      key: Status
+      value: deprecated
+
+policies:
+    - name: find-deprecated-versions
+      resource: aws.rds
+      filters:
+        - <<: *filters
+      actions:
+        - <<: *notify
+          action_desc: "Notify only - RDS deprecated version :eyes:"
+          violation_desc: "RDS RDS deprecated versions"
+          level: "warning"

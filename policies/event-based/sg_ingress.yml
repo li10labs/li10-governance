@@ -1,0 +1,44 @@
+---
+vars:
+  mode: &mode
+    type: cloudtrail
+    member-role: "{MEMBER_ROLE}"
+  filters_actions: &filters_actions
+    filters:
+      - "tag:c7n_keep_open_sg_rule": absent
+      - or:
+            - type: ingress
+              Cidr:
+                value: "0.0.0.0/0"
+            - type: ingress
+              CidrV6:
+                value: "::/0"
+    actions:
+      - type: remove-permissions
+        ingress: matched
+      - type: notify
+        template: default.html
+        slack_template: default.slack
+        to:
+          - "{NOTIFY_EMAIL}"
+          - "{NOTIFY_SLACK}"
+        subject: "SG - Rule Open to Public = [custodian {{ account }} - {{ region }}]"
+        transport:
+          type: sqs
+          queue: "{INSTANT_SQS_QUEUE}"
+        action_desc: "Rule Removed :magic_wand:"
+        violation_desc: "SG Open rule detected - Removed"
+
+policies:
+  - name: sg-open-ingress-rule-tag
+    resource: security-group
+    mode:
+      <<: *mode
+      events:
+        - source: ec2.amazonaws.com
+          event: AuthorizeSecurityGroupIngress
+          ids: "responseElements.securityGroupRuleSet.items[].groupId"
+        - source: ec2.amazonaws.com
+          event: RevokeSecurityGroupIngress
+          ids: "requestParameters.groupId"
+    <<: *filters_actions

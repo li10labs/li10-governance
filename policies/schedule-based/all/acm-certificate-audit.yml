@@ -1,0 +1,37 @@
+vars:
+  run_mode: &run_mode
+    type: pull
+  notify: &notify
+    type: notify
+    slack_template: default.slack
+    to:
+        - "{NOTIFY_EMAIL}"
+        - "{NOTIFY_SLACK}"
+    transport:
+      type: sqs
+      queue: "{INSTANT_SQS_QUEUE}"
+
+
+policies:
+  - name: acm-certificate-audit
+    resource: acm-certificate
+    filters:
+      - or:
+          - "tag:Audit": absent
+          - "tag:Audit": empty
+          - type: value
+            key: Name
+            op: regex
+            value: ".*"
+      - type: value
+        key: NotAfter
+        op: less-than
+        value_type: expiration
+        value: 60
+    mode:
+      <<: *run_mode
+    actions:
+      - <<: *notify
+        action_desc: "Notify only - action is required :eyes:"
+        violation_desc: "ACM certs are expiring within 60 days"
+        level: "warning"

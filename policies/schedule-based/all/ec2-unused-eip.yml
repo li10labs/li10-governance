@@ -1,0 +1,65 @@
+vars:
+  run_mode: &run_mode
+    type: pull
+  notify: &notify
+    type: notify
+    slack_template: default.slack
+    to:
+        - "{NOTIFY_EMAIL}"
+        - "{NOTIFY_SLACK}"
+    subject: "EIP - Unassociated EIP found = [custodian {{ account }} - {{ region }}]"
+    transport:
+      type: sqs
+      queue: "{INSTANT_SQS_QUEUE}"
+  eip_filters: &eip_filters
+    - InstanceId: absent
+    - AssociationId: absent
+
+policies:
+  # Mark any EIP with no instances attached for action in 7 days
+  - name: unused-eip-mark
+    resource: elastic-ip
+    filters:
+      - "tag:maid_status_eip": absent
+      - and: *eip_filters
+    mode:
+      <<: *run_mode
+    actions:
+      - type: mark-for-op
+        tag: maid_status_eip
+        days: 7
+        op: release
+      - <<: *notify
+        action_desc: "Notify only - Automated remediation is scheduled :alarm_clock:"
+        violation_desc: "New EIPs were found without association"
+        level: "good"
+
+  # List new and old IPs which are not associated
+  - name: unused-eip-audit
+    resource: elastic-ip
+    filters:
+      - and: *eip_filters
+    mode:
+      <<: *run_mode
+    actions:
+      - <<: *notify
+        action_desc: "Notying only - Automated remediation is scheduled :eyes:"
+        violation_desc: "EIPs were found without association"
+        level: "good"
+
+  # Remove the maid_status_eip tag from any eip which has instances attached
+  - name: unused-eip-unmark-if-in-use
+    resource: elastic-ip
+    filters:
+      - "tag:maid_status_eip": not-null
+      - not:
+        - or: *eip_filters
+    mode:
+      <<: *run_mode
+    actions:
+      - type: remove-tag
+        tags: [maid_status_eip]
+      - <<: *notify
+        action_desc: "EIP removed after grace period :magic_wand:"
+        violation_desc: "EIP was left unassociated"
+        level: "good"

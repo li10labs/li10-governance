@@ -1,0 +1,13 @@
+accounts:
+  - account_id: '123456789123'
+    name: stage
+    regions:
+    - us-east-1
+    role: arn:aws:iam::123456789123:role/governance_security_level_1_role
+    vars:
+      NOTIFY_EMAIL: "groumail@test.com"
+      NOTIFY_SLACK: "slack://#alerts"
+      INSTANT_SQS_QUEUE: "https://sqs.us-east-1.amazonaws.com/123456789123/CloudcustodianStackMailer-mailerqueue123456-232qsdqd123"
+###################
+# BILLING ACCOUNT #
+###################

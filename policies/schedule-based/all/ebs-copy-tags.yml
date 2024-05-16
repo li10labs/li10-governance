@@ -1,0 +1,49 @@
+vars:
+  run_mode: &run_mode
+    type: pull
+  notify: &notify
+    type: notify
+    template: default.html
+    subject: "[custodian {{ account }} - {{ region }}] EBS volume or snapshop tagged"
+    slack_template: default.slack
+    to:
+        - "{NOTIFY_EMAIL}"
+        - "{NOTIFY_SLACK}"
+    transport:
+      type: sqs
+      queue: "{INSTANT_SQS_QUEUE}"
+
+policies:
+  - name: aws-copy-tags-from-instance-to-ebs-volume
+    resource: ebs
+    mode:
+      <<: *run_mode
+    filters:
+        - type: value
+          key: Attachments[0].Device
+          value: not-null
+    actions:
+        - type: copy-related-tag
+          resource: ec2
+          skip_missing: True
+          key: Attachments[].InstanceId | [0]
+          tags: '*'
+        - <<: *notify
+          action_desc: "Resource tag auto-propagated"
+          violation_desc: "Resource was missing tags"
+          level: "good"
+
+  - name: ebs-to-snapshot
+    resource: ebs-snapshot
+    mode:
+      <<: *run_mode
+    actions:
+      - type: copy-related-tag
+        resource: ebs
+        skip_missing: True
+        key: VolumeId
+        tags: '*'
+      - <<: *notify
+        action_desc: "Resource tag auto-propagated"
+        violation_desc: "Resource was missing tags"
+        level: "good"

@@ -1,0 +1,35 @@
+vars:
+  run_mode: &run_mode
+    type: pull
+  notify: &notify
+    type: notify
+    slack_template: default.slack
+    to:
+        - "{NOTIFY_EMAIL}"
+        - "{NOTIFY_SLACK}"
+    subject: "SG - Ingress Rule open to public = [custodian {{ account }} - {{ region }}]"
+    transport:
+      type: sqs
+      queue: "{INSTANT_SQS_QUEUE}"
+  filters: &filters
+      - or:
+            - type: ingress
+              Cidr:
+                value: "0.0.0.0/0"
+            - type: ingress
+              CidrV6:
+                value: "::/0"
+
+policies:
+  - name: sg-open-ingress-rule-tag
+    resource: security-group
+    filters:
+      - "tag:c7n_keep_open_sg_rule": absent
+      - and: *filters
+    actions:
+      - type: remove-permissions
+        ingress: matched
+      - <<: *notify
+        action_desc: "Notying only - Automated remediation has been performed :eyes:"
+        violation_desc: "SG - Ingress Rule open to public"
+        level: "warning"

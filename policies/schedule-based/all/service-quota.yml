@@ -1,0 +1,30 @@
+vars:
+  run_mode: &run_mode
+    type: pull
+  notify: &notify
+    type: notify
+    slack_template: default.slack
+    to:
+        - "{NOTIFY_EMAIL}"
+        - "{NOTIFY_SLACK}"
+    subject: "Service Quota - Increased by 25% = [custodian {{ account }} - {{ region }}]"
+    transport:
+      type: sqs
+      queue: "{INSTANT_SQS_QUEUE}"
+  filters: &filters
+      - type: service-limit
+        threshold: 80
+
+policies:
+  - name: service-quota-usage
+    resource: aws.service-quota
+    filters:
+      - <<: *filters
+    actions:
+      - type: request-limit-increase
+        percent-increase: 25
+      - actions:
+        - <<: *notify
+          action_desc: "Notying only - Automated remediation has been performed :eyes:"
+          violation_desc: "Service Quota - Increased by 25%"
+          level: "good"

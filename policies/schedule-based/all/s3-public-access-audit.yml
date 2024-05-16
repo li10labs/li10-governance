@@ -1,0 +1,29 @@
+vars:
+  run_mode: &run_mode
+    type: pull
+  notify: &notify
+    type: notify
+    slack_template: default.slack
+    to:
+        - "{NOTIFY_EMAIL}"
+        - "{NOTIFY_SLACK}"
+    transport:
+      type: sqs
+      queue: "{INSTANT_SQS_QUEUE}"
+
+policies:
+  - name: s3-public-access-audit
+    resource: s3
+    description: |
+      Cloud Custodian Public Access S3 Audit
+    comments: |
+      Retrieve public S3 buckets
+    filters:
+      - or:
+        - type: global-grants
+          allow_website: false
+    actions:
+      - <<: *notify
+        action_desc: "Notify only - action is required :eyes:"
+        violation_desc: "Unauthorized Public S3 Bucket created"
+        level: "danger"

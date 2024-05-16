@@ -1,0 +1,209 @@
+---
+vars:
+  mode: &mode
+    type: cloudtrail
+    member-role: "{MEMBER_ROLE}"
+  filters_actions: &filters_actions
+    filters:
+     - tag:li10.autotag: absent
+    actions:
+     - type: auto-tag-user
+       tag: li10.autotag
+     - type: notify
+       to:
+        - "{NOTIFY_EMAIL}"
+        - "{NOTIFY_SLACK}"
+       template: default.html
+       slack_template: default.slack
+       subject: "[custodian {{ account }}] Automated tagging - {{ region }}"
+       transport:
+         type: sqs
+         queue: "{INSTANT_SQS_QUEUE}"
+       action_desc: "Resource Auto-Tagged :magic_wand:"
+       violation_desc: "Resource was missing Owner tag"
+policies:
+  - name: sagemaker-model-tag
+    # must match the matching resource name in the CC doc
+    # if it does not match, actions won't be executed
+    resource: sagemaker-model
+    mode:
+      <<: *mode
+      events:
+       # configure EventBridge Rule
+       - source: sagemaker.amazonaws.com
+         event: "CreateModel"
+         # allow Lambda to extract information about resource to tag
+         ids: "responseElements.modelArn"
+    <<: *filters_actions
+
+  - name: sagemaker-endpoint-config-tag
+    resource: sagemaker-endpoint-config
+    mode:
+      <<: *mode
+      events:
+       - source: sagemaker.amazonaws.com
+         event: "CreateEndpointConfig"
+         ids: "responseElements.endpointConfigArn"
+    <<: *filters_actions
+
+  - name: sagemaker-endpoint-tag
+    resource: sagemaker-endpoint
+    mode:
+      <<: *mode
+      events:
+       - source: sagemaker.amazonaws.com
+         event: "CreateEndpoint"
+         ids: "responseElements.endpointArn"
+    <<: *filters_actions
+
+  - name: sagemaker-training-job-tag
+    resource: sagemaker-job
+    mode:
+      <<: *mode
+      events:
+       - source: sagemaker.amazonaws.com
+         event: "CreateTrainingJob"
+         ids: "responseElements.trainingJobArn"
+    <<: *filters_actions
+
+  - name: sagemaker-notebook-tag
+    resource: sagemaker-notebook
+    mode:
+      <<: *mode
+      events:
+       - source: sagemaker.amazonaws.com
+         event: "CreateNotebookInstance"
+         ids: "responseElements.notebookInstanceArn"
+    <<: *filters_actions
+
+  - name: sagemaker-transform-job
+    resource: sagemaker-transform-job
+    mode:
+      <<: *mode
+      events:
+       - source: sagemaker.amazonaws.com
+         event: "CreateTransformJob"
+         ids: "requestParameters.transformJobName"
+    <<: *filters_actions
+
+  - name: ec2-instance
+    resource: ec2
+    mode:
+      <<: *mode
+      events:
+       - RunInstances
+    <<: *filters_actions
+
+  - name: s3-bucket
+    resource: s3
+    mode:
+      <<: *mode
+      events:
+       - CreateBucket
+    <<: *filters_actions
+
+  - name: rds
+    resource: rds
+    mode:
+      <<: *mode
+      events:
+       - CreateDBInstance
+    <<: *filters_actions
+
+  - name: lambda
+    resource: lambda
+    mode:
+      <<: *mode
+      events:
+       - source: lambda.amazonaws.com
+         event: CreateFunction20150331
+         ids: responseElements.functionArn
+    <<: *filters_actions
+
+  - name: ebs-snapshot
+    resource: ebs-snapshot
+    mode:
+      <<: *mode
+      events:
+       - source: ec2.amazonaws.com
+         event: CreateSnapshot
+         ids: "responseElements.snapshotId"
+    <<: *filters_actions
+
+  - name: ebs-volume
+    resource: ebs
+    mode:
+      <<: *mode
+      events:
+       - CreateVolume
+    <<: *filters_actions
+
+  - name: app-elb
+    resource: app-elb
+    mode:
+      <<: *mode
+      events:
+       - source: elasticloadbalancing.amazonaws.com
+         event: CreateLoadBalancer
+         ids: responseElements.loadBalancers[0].loadBalancerArn
+    <<: *filters_actions
+
+  - name: app-elb-target-group
+    resource: app-elb-target-group
+    mode:
+      <<: *mode
+      events:
+       - source: elasticloadbalancing.amazonaws.com
+         event: CreateTargetGroup
+         ids: responseElements.targetGroups[0].targetGroupArn
+    <<: *filters_actions
+
+  - name: glue-job
+    resource: glue-job
+    mode:
+      <<: *mode
+      events:
+       - source: glue.amazonaws.com
+         event: CreateJob
+         ids: responseElements.name
+    <<: *filters_actions
+
+  - name: opensearch-serverless
+    resource: opensearch-serverless
+    mode:
+      <<: *mode
+      events:
+       - source: aoss.amazonaws.com
+         event: CreateCollection
+         ids: responseElements.createCollectionDetail.id
+    <<: *filters_actions
+
+  - name: dynamodb
+    resource: dynamodb-table
+    mode:
+      <<: *mode
+      events:
+       - source: dynamodb.amazonaws.com
+         event: CreateTable
+         ids: requestParameters.tableName
+    <<: *filters_actions
+
+  - name: eip-allocate
+    resource: ec2
+    mode:
+      <<: *mode
+      events:
+       - source: ec2.amazonaws.com
+         event: AllocateAddress
+         ids: responseElements.publicIp
+    <<: *filters_actions
+
+  - name: ec2-securitygroup
+    resource: ec2
+    mode:
+      <<: *mode
+      events:
+       - source: ec2.amazonaws.com
+         event: CreateSecurityGroup
+         ids: responseElements.groupId
+    <<: *filters_actions

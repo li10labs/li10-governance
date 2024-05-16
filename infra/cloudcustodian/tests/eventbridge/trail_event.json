@@ -1,0 +1,82 @@
+{
+    "version": "0",
+    "id": "12345678-1234-1234-1234-123456789012",
+    "detail-type": "AWS API Call via CloudTrail",
+    "source": "local.app",
+    "account": "123456789012",
+    "time": "2023-04-20T10:00:00Z",
+    "region": "us-east-1",
+    "resources": [],
+    "detail": {
+      "eventVersion": "1.08",
+      "userIdentity": {
+        "type": "AssumedRole",
+        "principalId": "AROA:ABC123DEF456",
+        "arn": "arn:aws:sts::123456789012:assumed-role/MyRole/MySessionName",
+        "accountId": "123456789012",
+        "accessKeyId": "ABC123DEF456",
+        "sessionContext": {
+          "sessionIssuer": {
+            "type": "Role",
+            "principalId": "ABC123DEF456",
+            "arn": "arn:aws:sts::123456789012:assumed-role/MyRole",
+            "accountId": "123456789012",
+            "userName": "MyRole"
+          },
+          "webIdFederationData": {},
+          "attributes": {
+            "creationDate": "2023-04-20T09:00:00Z",
+            "mfaAuthenticated": "false"
+          }
+        }
+      },
+      "eventTime": "2023-04-20T10:00:00Z",
+      "eventSource": "ec2.amazonaws.com",
+      "eventName": "AuthorizeSecurityGroupIngress",
+      "awsRegion": "us-east-1",
+      "sourceIPAddress": "1.2.3.4",
+      "userAgent": "aws-cli/1.20.0 Python/3.8.8 Darwin/20.3.0 botocore/1.21.0",
+      "requestParameters": {
+        "groupId": "sg-0123456789abcdef0",
+        "ipPermissions": {
+          "items": [{
+            "ipProtocol": "tcp",
+            "fromPort": 22,
+            "toPort": 22,
+            "groups": [],
+            "ipRanges": {
+              "items": [{
+                "cidrIp": "0.0.0.0/0"
+              }]
+            },
+            "ipv6Ranges": [],
+            "prefixListIds": []
+          }]
+        }
+      },
+      "responseElements": {
+        "requestId": "12345678-1234-1234-1234-123456789012",
+        "_return": true,
+        "securityGroupRuleSet": {
+          "items": [{
+            "groupOwnerId": "123456789012",
+            "groupId": "sg-0123456789abcdef0",
+            "securityGroupRuleId": "sgr-0123456789abcdef0",
+            "isEgress": false,
+            "ipProtocol": "tcp",
+            "fromPort": 22,
+            "toPort": 22,
+            "cidrIpv4": "0.0.0.0/0"
+          }]
+        }
+      },
+      "requestID": "12345678-1234-1234-1234-123456789012",
+      "eventID": "12345678-1234-1234-1234-123456789012",
+      "readOnly": false,
+      "eventType": "AwsApiCall",
+      "managementEvent": true,
+      "recipientAccountId": "123456789012",
+      "eventCategory": "Management",
+      "sessionCredentialFromConsole": "true"
+    }
+  }

@@ -1,0 +1,37 @@
+vars:
+  run_mode: &run_mode
+    type: pull
+  notify: &notify
+    type: notify
+    template: default.html    
+    slack_template: default.slack
+    to:
+        - "{NOTIFY_EMAIL}"
+        - "{NOTIFY_SLACK}"
+    subject: "[custodian {{ account }} - {{ region }}] Public EC2 instance found 👀🚨"
+    transport:
+      type: sqs
+      queue: "{INSTANT_SQS_QUEUE}"
+  eip_filters: &eip_filters
+    - InstanceId: absent
+    - AssociationId: absent
+
+policies:
+  - name: ec2-public-instance-audit
+    resource: ec2
+    mode:
+      <<: *run_mode
+    filters:
+      - or:
+        - type: subnet
+          key: "tag:Name"
+          op: regex
+          value: ".*pub"
+        - type: value
+          key: "PublicIpAddress"
+          value: not-null
+    actions:
+      - <<: *notify
+        action_desc: "Notify only - action is required 👀🚨"
+        violation_desc: "Public EC2 instance found"
+        level: "danger"
