@@ -7,7 +7,7 @@
 
 This repository is supported by Li10.
 </br>
-Check out <a href="www.li10.com">www.li10.com</a> to learn more about our private repository and SaaS options.
+Check out <a href="https://www.li10.com">www.li10.com</a> to learn more about our private repository and SaaS options.
 </center>
 
 </br>
