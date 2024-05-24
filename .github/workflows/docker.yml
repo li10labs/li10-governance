@@ -3,7 +3,7 @@ name: Build Docker Container
 on:
   push:
     branches:
-      - master
+      - "yourbranch"
     paths:
       - infra/cloudcustodian/docker/**
       - policies/schedule-based/**
